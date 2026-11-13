@@ -1,4 +1,5 @@
 from json import JSONDecodeError
+import random
 
 import kocka_class
 import tkinter as tk
@@ -9,21 +10,85 @@ import json
 from datetime import datetime
 import sqlite3
 
-class KockaApp:
-    def __init__(self, root):
-        self.root = root
+
+
 
 class KockaApp(kocka_class.Kockadobas):
     def __init__(self, root):
         super().__init__(root)
-        self.mentes_gomb = ttk.Button(root, text='Mentés - TEXT', command=self.mentes)
-        self.mentes_gomb.grid(column=0, row=3)
-        self.mentes_csv_gomb = ttk.Button(root, text='Mentés - CSV', command=self.mentes_csv)
-        self.mentes_csv_gomb.grid(column=1, row=3)
-        self.mentes_json_gomb = ttk.Button(root, text='Mentés - JSON', command=self.mentes_json)
-        self.mentes_json_gomb.grid(column=2, row=3)
+        #self.mentes_gomb = ttk.Button(root, text='Mentés - TEXT', command=self.mentes)
+        #self.mentes_gomb.grid(column=0, row=3)
+        #self.mentes_csv_gomb = ttk.Button(root, text='Mentés - CSV', command=self.mentes_csv)
+        #self.mentes_csv_gomb.grid(column=1, row=3)
+        #self.mentes_json_gomb = ttk.Button(root, text='Mentés - JSON', command=self.mentes_json)
+        #self.mentes_json_gomb.grid(column=2, row=3)
         self.mentes_sql_gomb = ttk.Button(root, text='Mentés - SQL', command=self.mentes_sql )
-        self.mentes_sql_gomb.grid(column=3, row=3)
+        self.mentes_sql_gomb.grid(column=0, row=3, pady=10)
+        self.veletlen_gomb = ttk.Button(root, text='Dobasszam', command=self.veletlen_dobasszam)
+        self.veletlen_gomb.grid(column=1, row=1)
+        self.osszesites_cimke = ttk.Label(root, text='Összesítés')
+        self.osszesites_cimke.grid(column=2, row=1)
+        self.osszesites_gomb = ttk.Button(root, text='Összesítés', command=self.osszesites_sql)
+        self.osszesites_gomb.grid(column=2, row=3)
+        self.torles_gomb = ttk.Button(root, text='Törlés', command=self.torle_sql)
+        self.torles_gomb.grid(column=2, row=4)
+        szoveg ='\n'
+        for i in range(6):
+            szoveg += f'{i + 1}. = ---\n'
+        self.osszesites_cimke = ttk.Label(root, text=szoveg, font='Arial 16')
+        self.osszesites_cimke.grid(row=2, column=2)
+        self.dobas()
+
+
+    def torle_sql(self):
+        valasz = messagebox.askyesno('Törlés', 'Biztosan töröljem?')
+        if not valasz:
+            return
+        try:
+            with sqlite3.connect('mentes.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM dobasok")
+                conn.commit()
+
+            self.osszesites_cimke.config(text='')
+            messagebox.showinfo('Törlés', 'Töröltem a rekordokat')
+        except sqlite3.Error as e:
+            messagebox.showerror('Törlés',f'Nem sikerült a törlés, hibakód {e}')
+
+    def osszesites_sql(self):
+        try:
+            with sqlite3.connect('mentes.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 
+                        SUM(egy), 
+                        SUM(ketto),
+                        SUM(harom),
+                        SUM(negy),
+                        SUM(ot),
+                        SUM(hat)
+                    FROM dobasok
+                """)
+
+                eredmeny = cursor.fetchone()
+
+                if eredmeny[0] is None:
+                    self.osszesites_cimke.config(text='Üres')
+                    return
+
+                print(eredmeny)
+                szoveg = '\n'
+                for i in range(6):
+                    szoveg += f'{i+1}. = {eredmeny[i]}\n'
+                self.osszesites_cimke.config(text=szoveg)
+
+        except sqlite3.Error as e:
+            messagebox.showerror('Mentes',f'Nem sikerült a lekérdezés, hibakód {e}')
+
+    def veletlen_dobasszam(self):
+        szam = random.randint(10, 500)
+        self.dobas_szam.set(str(szam))
+        self.dobas()
 
     def mentes_sql(self):
         if sum(self.eredmenyek.values()) == 0:
@@ -113,6 +178,7 @@ class KockaApp(kocka_class.Kockadobas):
             messagebox.showinfo('Mentes', 'Sikeres volt a Mentes')
         except OSError:
             messagebox.showerror('Hiba', 'Nem sikerült a Mentes')
+
 
 if __name__ == "__main__":
     root = tk.Tk()
